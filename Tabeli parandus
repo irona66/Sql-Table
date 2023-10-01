@@ -1,0 +1,458 @@
+6---------------------------------------------------------------------------------------------
+USE Master
+CREATE DATABASE Arved
+
+--Tabelite loomine
+
+/*
+KLIENDID
+Kliendi_ID
+Eesnimi
+Perenimi
+Ikood
+*/
+
+USE Arved
+
+
+CREATE TABLE Kliendid (
+	Kliendi_ID int identity(1,1) primary key,
+	Eesnimi varchar(50) not null,
+	Perenimi varchar(50) not null,
+	Ikood varchar(25) 		
+
+)
+
+SELECT * FROM Kliendid			
+
+
+
+	
+
+/*
+ARVED
+Arve_ID
+Kliendi_ID
+ArveNr
+Kuupäev
+Tähtaeg
+Summa
+Laekunud
+*/
+
+CREATE TABLE Arved (
+	Arve_ID int identity(1,1) primary key,
+	Kliendi_ID int not null foreign key references Kliendid (Kliendi_ID),
+	ArveNr varchar(15) not null,
+	Kuupäev date not null default getdate() check(Kuupäev >= dateadd(day,-7,getdate())),
+	Tähtaeg date not null default dateadd(day,10,getdate()),
+	CHECK(Tähtaeg >=Kuupäev),
+	Summa money not null,
+	Laekunud bit				
+)
+
+SELECT * FROM Arved			
+
+	--bit, tinyint, smallint, int, bigint
+	-- 0-1, 0...255 ~+/- 32 tuh, 2 mlrd
+	--char(n), varchar(n)
+
+
+
+
+2. video 7----------------------------------------------------------------------------------
+
+----------------------------------------------
+/*ANDMETE LISAMINE, MUUTMINE, KUSTUTAMINE*/
+----------------------------------------------
+
+
+
+Lisa database diagrammist new nimega AB struktuur
+
+
+SELECT * FROM Kliendid  					---execute
+
+INSERT INTO Kliendid  (Eesnimi, Perenimi, Ikood)
+VALUES ('Madis','Mäekalle','35612052845')		
+
+
+INSERT INTO Kliendid (Perenimi, Eesnimi)
+VALUES ('Assa','Mait')					
+
+
+INSERT INTO Kliendid (Eesnimi, Perenimi)
+VALUES ('Vello','Viisijupike'), ('Kalju','Kits')	
+
+INSERT INTO Kliendid 
+VALUES ('Kuri','Saatus','11111111112')			
+
+SELECT * FROM Kliendid 
+
+INSERT INTO Kliendid 
+VALUES ('Õie','Nektar','47910230589'),
+        ('Õnne','Sepp', NULL)				
+
+
+
+UPDATE Kliendid
+SET Ikood = '48405264527'
+WHERE Kliendi_ID = 7						
+
+
+SELECT * FROM Arved						
+SELECT * FROM Kliendid 
+
+
+
+INSERT INTO Arved (Kliendi_ID, ArveNr, Summa)
+VALUES (5, 'MA-22001', 37.25)						
+
+
+
+INSERT INTO Arved (Kliendi_ID, ArveNr, Kuupäev,Tähtaeg, Summa)
+VALUES (4, 'MA-22002', '2022-06-02','2022-06-12', 127.45)		--execute  dbo.Arved->Constrains->CK-Arved Kuupäev Delete
+
+
+INSERT INTO Arved (Kliendi_ID, ArveNr, Kuupäev,Tähtaeg, Summa)
+VALUES 
+(5, 'MA-22003', '2022-06-12', '2022-06-22', 15.89),
+(4, 'MA-22004', '2022-06-22', '2022-07-02', 345.65), 
+(6, 'MA-22005', '2022-06-12', '2022-06-22', 15.89),
+(3, 'MA-22006', '2022-07-11', '2022-07-21', 27.35),
+(1, 'MA-22007', '2022-07-14', '2022-07-24', 151.38),
+(7, 'MA-22008', '2022-07-22', '2022-08-01', 5.25),
+(5, 'MA-22009', '2022-08-24', '2022-09-03', 2892.75),
+(3, 'MA-22010', '2022-08-26', '2022-09-05', 2.15)				--execute kõik korraga
+
+
+SELECT * FROM Arved								
+
+
+---paneme uuesti käima ja select arved. Tekkib juurde 8 rida.    
+
+DELETE FROM Arved
+
+--SELECT * FROM Arved
+WHERE Arve_ID >= 14								
+
+
+
+3. vid 8------------------------------------------------------------------------------------------------
+
+
+------------------------------------
+/* PÄRINGUD ÜHEST TABELIST*/
+-----------------------------------
+
+--Anna klientide nimekiri
+SELECT * FROM Kliendid 						--execute
+SELECT Eesnimi, Perenimi FROM Kliendid				
+SELECT Perenimi, Eesnimi FROM Kliendid			
+SELECT Perenimi + ',' + left(Eesnimi, 1) +'.'AS Klient FROM Kliendid		
+
+
+SELECT Eesnimi, Perenimi
+FROM Kliendid
+ORDER BY Perenimi, DESC, Eesnimi					
+
+--Anna 5 kõige suurema summaga arvet
+SELECT * FROM Arved
+					
+SELECT TOP 5 ArveNr, Tähtaeg, Summa
+FROM Arved
+--Limit 5 (MYSQL)
+
+
+SELECT TOP 5 ArveNr, Tähtaeg, Summa
+FROM Arved
+ORDER BY Summa DESC 
+
+
+--Anna 5 suurimat arvet, järjestades need summa järgi kasvavalt
+SELECT * FROM (
+	SELECT TOP 5 ArveNr, Tähtaeg, Summa
+	FROM Arved
+	ORDER BY Summa DESC ) AS Tabel 
+ORDER BY Summa ASC						
+
+
+-- Anna viimase/jooksva kuu arvete nimekiri
+SELECT ArveNr, Summa, Kuupäev
+FROM Arved						
+WHERE Month(getdate()) = Month(Kuupäev)
+	AND Year(getdate()) = Year(Kuupäev)			
+
+
+--Anna eelmise kuu arvete nimekiri
+SELECT ArveNr, Summa, Kuupäev
+FROM Arved							--execute
+WHERE Month(dateadd(month, -1, getdate())) = Month(Kuupäev)
+   AND Year(dateadd(month, -1,getdate())) = Year(Kuupäev)			--execute
+
+
+SELECT DATEPART(iso_WEEK, getdate()) AS Nädal			
+
+
+
+4. vid 9-----------------------------------------------------------------------------------------------------
+-------------------------------------------------
+/*VIITETERVIKLIKKUSE LISAMINE TABELITE LOOMISEL */
+--------------------------------------------------
+
+/*
+TOOTED
+Toote_ID
+Kood
+Nimi
+Ühik
+SO_Hind
+Müügihind
+*/
+--USE Arved
+CREATE TABLE Tooted (
+	Toote_ID int identity(1,1) primary key,
+	Tootekood varchar(25) NOT NULL,
+	TooteNimi varchar(150) NOT NULL,
+	Ühik varchar(15) NOT NULL,
+	 Müügihind money NOT NULL check(Müügihind > = 0)
+)
+
+
+
+/*
+ARVEREAD
+ArveRea_ID
+Arve_ID
+Toote_ID
+Kogus
+Hind
+*/
+
+CREATE TABLE ArveRead (
+	ArveRea_ID int identity(1,1) primary key,
+	Arve_ID int not null foreign key references Arved(Arve_ID),
+	Toote_ID int not null foreign key references Tooted(Toote_ID),
+	Kogus decimal(7,3) not null default 1,
+	ÜhikuHind money not null check(ÜhikuHind > = 0)			
+)
+
+/*
+LAEKUMISED
+Laekumise_ID
+Arve_ID
+Summa
+Kuupäev
+*/
+
+CREATE TABLE Laekumised (
+	Laekumise_ID int identity(1,1) primary key,
+	Arve_ID int not null foreign key references Arved(Arve_ID),
+	Summa money not null,
+	Kuupäev date not null default getdate() check(Kuupäev >= getdate()) 
+
+-- Database diagramm AB Struktuur->teeme lahti-> lisda Arveread jane
+
+
+
+5. vid 10---------------------------------------------------------------------------------------
+
+
+
+
+---------------------------
+ /* ANDMETE MASSLISAMINE*/
+--------------------------
+
+SELECT * FROM Tooted					--execute
+-- Kood Nimetus Ühik Hind Kategooria    lisame kategooria tootetabelisse
+
+
+ALTER TABLE Tooted
+ADD Kategooria varchar(25)				--execute
+
+Lisame CSV faile(avutis olemas)
+
+BULK INSERT Tooted FROM C:\SQL Videokoolitus\TootedCSV.csv
+	WITH (
+	IELDTERINATOR = ';',
+	ROWTERMINATOR = '\n',
+	FORMAT = 'CSV',
+	FIRSTROW = 2
+	);							
+
+
+
+
+
+SELECT * FROM Tooted						
+
+
+
+UPDATE Tooted 
+SET Kategooria = 'Üldehitus'
+WHERE Kategooria = 'ldehitus'           Copy Pastiga panen kirja vale sõna
+
+
+UPDATE Tooted 
+SET Kategooria = 'Tööristad'
+WHERE Kategooria = '++ristad'		sama nagu eelmine
+
+
+--ArveNr TooteKood Kogus Hind
+
+SELECT * FROM ArveRead				
+
+
+
+
+/*
+ArveNr;TooteKood ; Kogus;Hind
+MA-22001; T001;6;170
+*/
+
+CREATE TABLE #Ajutine (
+	ArveNr varchar(25),
+	TooteKood varchar(25),
+	Kogus decimal(7,2),
+	Hind money
+)							
+
+
+SELECT * FROM #Ajutine					
+
+
+BULK INSERT #Ajutine FROM C:\SQL Videokoolitus\ArvereadCSV.csv	--execute
+	WITH (
+	IELDTERINATOR = ';',
+	ROWTERMINATOR = '\n',
+	FORMAT = 'CSV',
+	FIRSTROW = 2
+	);
+
+
+ALTER TABLE #Ajutine
+ADD ArveID int					
+
+
+SELECT * FROM #Ajutine					
+
+
+UPDATE #Ajutine
+SET ArveID = (
+	select Arve_ID from Arved
+	where Arved.ArveNr = #Ajutine.ArveNr				--execute
+
+	)
+
+
+
+SELECT * FROM Arved
+ALTER TABLE #Ajutine ADD TooteID  int
+UPDATE #Ajutine
+SET TooteID = (
+	select Toote_ID from Tooted 
+	where Toote.TooteKood = #Ajutine.Toote.Kood				
+
+	)
+
+SELECT * FROM #Ajutine	
+SELECT * FROM ArveRead					
+SELECT * FROM Tooted
+
+INSERT INTO ArveRead (Arve_ID, Toote_ID, Kogus, ÜhikuHind)
+SELECT ArveID, TooteID, Kogus, Hind FROM #Ajutine
+
+
+SELECT * FROM ArveRead	
+
+
+SELECT Sum(Kogus), Sum(ÜhikuHind) FROM ArveRead
+
+
+SELECT * FROM #Ajutine	
+
+
+
+6. vid 11------------------------------------------------------------------------------------------------------
+
+-------------------------------------------
+/*PROTSEDUURIDE LOOMINE JA KASUTAMINE*/
+----------------------------------------
+
+SELECT * FROM Arved
+SELECT * FROM ArveRead
+
+--Arvutame konkreetset arve ridade summa 
+SELECT Sum(Kogus * ÜhikuHind) AS Summa 
+FROM ArveRead
+WHERE Arve_ID = 10
+
+
+--Teeme UPDATE lause, mis uuendab konkreetse arve summat Arvete tabelis
+UPDATE Arved
+SET Summa = (
+	select sum(kogus * ühikuhind) from arveread
+	where arve_id = 10
+	)
+WHERE Arve_Id = 10
+
+
+SELECT * FROM Arved
+
+--Lahendame nii, et ei peaks Arve_ID kahes kohas muutma/sisestama
+DECLARE @ArveID int --= 10 (või kasutada)
+SET @ArveID = 2
+
+UPDATE Arved
+SET Summa = (
+	select sum(kogus * ühikuhind) from arveread
+	where arve_id = @ArveID
+	)
+WHERE Arve_Id = @ArveID
+
+
+SELECT * FROM Arved
+
+--Loome UPDATE lause põhjal eelneva protseduuri
+CREATE /*ALTER*/ PROCEDURE UuendaArveSumma   @ArveID int AS 
+	UPDATE Arved
+	SET Summa = (
+	select sum(kogus * ühikuhind) from arveread
+	where arve_id = @ArveID
+	)
+	WHERE Arve_Id = @ArveID
+
+--Protseduuri kasutamine
+EXEC UuendaArveSumma   @ArveID = 5
+SELECT * FROM Arved
+	
+--Loome protseduuri, mis uuendab kõikide arvete summad Arved tabelis
+ALTER /*CREATE*/ PROCEDURE UuendaKõikideArveteSummad AS
+	DECLARE @Loendaja int = 1
+	DECLARE @ViimaseArveId int = (select ident_current ('Arved'))
+	WHILE @Loendaja <= @ViimaseArveID
+		BEGIN
+			IF EXISTS(select * from Arved where Arve_Id = @Loendaja)
+		 		BEGIN
+		 			 EXEC UuendaArveSumma @ArveID = @Loendaja
+			END
+		SET @Loendaja = @Loendaja + 1
+	END
+	
+	
+UPDATE Arved SET Summa = 1
+SELECT * FROM Arved
+
+EXEC UuendaKõigiArveteSummad 
+	
+	select top 1 arve_id from arved order by arve_id desc)
+	select top 1 arve_id from arved order by arve_id desc)
+	select max(arve_id) from arved			--Query menu-> Display Estimated Explotion plan
+	select ident_current('Arved')
+
+
+
+
+
+
